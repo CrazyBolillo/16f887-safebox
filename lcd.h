@@ -14,5 +14,6 @@ void lcd_init(bool display, bool cursor, bool blink);
 void lcd_display(bool display, bool cursor, bool blink);
 void lcd_write_string(char *string);
 void lcd_move_cursor(char address);
+void lcd_clear_display(void);
 
 #endif

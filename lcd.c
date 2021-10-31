@@ -47,3 +47,7 @@ void lcd_write_string(char *string) {
 void lcd_move_cursor(char address) {
     send(0, (0x80 | address));
 }
+
+void lcd_clear_display(void) {
+    send(false, 0x01);
+}
