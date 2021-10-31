@@ -6,8 +6,8 @@
 #define EN PORTDbits.RD5
 #define _XTAL_FREQ 8000000
 
-#include <xc.h>
 #include <stdbool.h>
+#include "config.h"
 
 void lcd_send(char data);
 void lcd_init(bool display, bool cursor, bool blink);
