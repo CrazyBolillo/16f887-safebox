@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include "config.h"
 
-void lcd_send(char data);
+void lcd_send(bool rs, char data);
 void lcd_init(bool display, bool cursor, bool blink);
 void lcd_display(bool display, bool cursor, bool blink);
 void lcd_write_string(char *string);

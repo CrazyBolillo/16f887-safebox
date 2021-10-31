@@ -1,6 +1,6 @@
 #include "lcd.h"
 
-void send(bool rs, char data) {
+void lcd_send(bool rs, char data) {
     RS = rs;
     DATA = ((DATA & 0xF0) | (data >> 4));
     EN = 1;
@@ -13,14 +13,15 @@ void send(bool rs, char data) {
 }
 
 void lcd_init(bool display, bool cursor, bool blink) {
+    __delay_ms(12);
     PORTD = 0x00;
     TRISD &= 0xC0;
     
-    send(0, 0x02);
-    send(0, 0x28);
+    lcd_send(0, 0x02);
+    lcd_send(0, 0x28);
     lcd_display(display, cursor, blink);
-    send(0, 0x14);
-    send(0, 0x01);
+    lcd_send(0, 0x14);
+    lcd_send(0, 0x01);
 }
 
 void lcd_display(bool display, bool cursor, bool blink) {
@@ -34,24 +35,24 @@ void lcd_display(bool display, bool cursor, bool blink) {
     if (blink) {
         config |= 0x01;
     }
-    send(0, config);
+    lcd_send(0, config);
 }
 
 void lcd_write_string(char *string) {
     while(*string != '\0') {
-        send(true, *string);
+        lcd_send(true, *string);
         string++;
     }
 }
 
 void lcd_write_char(char data) {
-    send(true, data);
+    lcd_send(true, data);
 }
 
 void lcd_move_cursor(char address) {
-    send(0, (0x80 | address));
+    lcd_send(0, (0x80 | address));
 }
 
 void lcd_clear_display(void) {
-    send(false, 0x01);
+    lcd_send(false, 0x01);
 }

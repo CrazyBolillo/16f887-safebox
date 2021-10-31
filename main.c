@@ -16,11 +16,20 @@
 
 #define CODE_LEN 4
 #define ATTEMPT_LIMIT 3
+#define EMPTY_LINE "                "
 
 #define STATUS_INIT 'I'
 #define STATUS_OPEN 'O'
 #define STATUS_CLOSED 'C'
 #define STATUS_LOCKED 'L'
+
+#define BUZZER PORTCbits.RC0
+#define BANDWIDTH 25
+
+#define SHOW_CLOSED_LEGEND() lcd_clear_display(); \
+            lcd_move_cursor(0x02); \
+            lcd_write_string("CAJA CERRADA"); \
+            lcd_move_cursor(0x46);
 
 char status = STATUS_INIT;
 uint8_t clicks = 0;
@@ -61,11 +70,39 @@ bool verify_code() {
     return true;
 }
 
+void __interrupt() handle_interrupt() {
+    if (PIR1bits.TMR2IF == 1) {
+        BUZZER = !BUZZER;
+        PIR1bits.TMR2IF = 0;
+    }
+}
+
+void play_sound() {
+    PR2 = 15;
+    T2CONbits.TMR2ON = 1;
+    __delay_ms(100);
+    T2CONbits.TMR2ON = 0;
+    BUZZER = 0;
+}
+
 void main(void) {
     OSCCON = 0x79;
     
+    PORTC = 0x00;
+    TRISC = 0x00;
+    
+    /**
+     * ------------------------------
+     *  Setup to play sound using PWM
+     * ------------------------------
+     */
+    // Postscaler = 16 & Prescaler = 16 - TMR2 off
+    T2CON = 0xFB;
+    INTCONbits.PEIE = 1;
+    INTCONbits.GIE = 1;
+    PIE1bits.TMR2IE = 1;
+    
     keypad_init();
-    __delay_ms(32);
     lcd_init(true, false, false);
     lcd_move_cursor(0x03);
     lcd_write_string("Bienvenido");
@@ -75,6 +112,7 @@ void main(void) {
     // Initialize before going into main loop.
     while (status == STATUS_INIT) {
         if (clicks == CODE_LEN) {
+            __delay_ms(500);
             status = STATUS_OPEN;
             clicks = 0;
             break;
@@ -82,54 +120,92 @@ void main(void) {
         
         key = convert_key(keypad_read());
         if ((key >= '0') && (key <= '9')) {
+            if (clicks == 0) {
+                lcd_move_cursor(0x40);
+                lcd_write_string(EMPTY_LINE);
+                lcd_move_cursor(0x46);
+            }
+            play_sound();
             code[clicks] = key;
+            lcd_write_char(key);
             clicks++;
         }
     }
     
     // Initilization  complete. Main program loop starts.
     while (1) {
+        /*
+         * -----------------------------
+         * CONTROL LOOP WHEN BOX IS OPEN
+         * -----------------------------
+         */
         while (status == STATUS_OPEN) {
             lcd_clear_display();
-            lcd_move_cursor(0x04);
-            lcd_write_string("ABIERTO");
-            lcd_move_cursor(0x43);
+            lcd_move_cursor(0x02);
+            lcd_write_string("Caja abierta");
+            lcd_move_cursor(0x42);
             lcd_write_string("Cerrar con *");
             while (status == STATUS_OPEN) {
                 key = keypad_read();
                 if (key == 13) {
+                    play_sound();
                     status = STATUS_CLOSED;
                     break;
                 }
             }
         }
+        /*
+         * ------------------------------
+         * CONTROL LOOP WHEN BOX IS CLOSED
+         * ------------------------------- 
+         */
         while (status == STATUS_CLOSED) {
-            lcd_clear_display();
-            lcd_move_cursor(0x04);
-            lcd_write_string("CERRADO");
-            lcd_move_cursor(0x46);
+            SHOW_CLOSED_LEGEND();
             clicks = 0;
             while (status == STATUS_CLOSED) {
                 if (clicks == CODE_LEN) {
                     clicks = 0;
+                    __delay_ms(500);
                     if (verify_code()) {
                         status = STATUS_OPEN;
+                        attempt_count = 0;
                         break;
                     }
                     else {
-                        lcd_move_cursor(0x46);
-                        lcd_write_string("    ");
-                        lcd_move_cursor(0x46);
+                        lcd_clear_display();
+                        lcd_move_cursor(0x06);
+                        lcd_write_string("ERROR");
+                        lcd_move_cursor(0x40);
+                        lcd_write_string("Clave incorrecta");
+                        __delay_ms(500);
+                        SHOW_CLOSED_LEGEND();
                         attempt_count++;
+                        
+                        if (attempt_count == 3) {
+                            status = STATUS_LOCKED;
+                            break;
+                        }
                     }
                 }
                 key = convert_key(keypad_read());
                 if ((key >= '0') && (key <= '9')) {
+                    play_sound();
                     lcd_write_char(key);
                     attempt[clicks] = key;
                     clicks++;
                 }
             }
+        }
+        /*
+         * ----------------------------------------------------------
+         * CONTROL LOOP WHEN BOX IS CLOSED - NO MORE ATTEMPTS ALLOWED
+         * ----------------------------------------------------------
+         */
+        while (status == STATUS_LOCKED) {
+            SHOW_CLOSED_LEGEND();
+            lcd_move_cursor(0x40);
+            lcd_write_string("Sin mas intentos");
+            while (1);
         }
     }
     
