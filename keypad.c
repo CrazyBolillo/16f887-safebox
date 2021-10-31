@@ -10,28 +10,19 @@ void keypad_init(void) {
 
 static char column_read(void) {
     if (COL4 == 0) {
-        __delay_ms(32);
-        while (COL4 == 0);
-        return 4;
+        DEBOUNCE(COL4, 4);
     }
     else if (COL3 == 0) {
-        __delay_ms(32);
-        while (COL3 == 0);
-        return 3;
+        DEBOUNCE(COL3, 3);
     }
     else if (COL2 == 0) {
-        __delay_ms(32);
-        while (COL2 == 0);
-        return 2;
+        DEBOUNCE(COL2, 2);
     }
     else if (COL1 == 0) {
-        __delay_ms(32);
-        while (COL1 == 0);
-        return 1;
+        DEBOUNCE(COL1, 1);
     }
-    else {
-        return 0;
-    }
+    
+    return 0;
 }
 
 char keypad_read(void) {

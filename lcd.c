@@ -44,6 +44,10 @@ void lcd_write_string(char *string) {
     }
 }
 
+void lcd_write_char(char data) {
+    send(true, data);
+}
+
 void lcd_move_cursor(char address) {
     send(0, (0x80 | address));
 }
