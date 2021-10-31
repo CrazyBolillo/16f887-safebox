@@ -3,6 +3,6 @@
 
 #include "config.h"
 
-void keypad_init();
+void keypad_init(void);
 
 #endif

@@ -5,9 +5,12 @@
 #pragma config FOSC = 101
 
 #include "lcd.h"
+#include "keypad.h"
 
 void main(void) {
     OSCCON = 0x79;
+    
+    keypad_init();
     
     __delay_ms(32);
     lcd_init(true, false, false);
